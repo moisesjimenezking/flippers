@@ -1,0 +1,25 @@
+Completado
+
+- User  - Listo
+- Token - Listo
+- Sales - Listo
+
+OMITIDO
+- TempCode
+- Subscriptions
+- Product
+- Plans
+- Orders
+- Delivery
+- Company
+
+Eliminar
+- CommandsDefault - Listo
+
+AUX:
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+logging.debug(data)

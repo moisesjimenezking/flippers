@@ -1,0 +1,96 @@
+version: "3.3"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: DB_BOT_SERVICE
+    restart: always
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+    volumes:
+      - './app/config/database/db:/app/database/db'
+      - './app/config/database/db:/var/lib/mysql'
+      - './app/config/database/config/my.cnf:/etc/mysql/my.cnf'
+      - './app/config/modelsFastText/:/app/config/modelsFastText/:rw'
+    networks:
+      - app-network
+      
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: PHPMYADMIN_BOT_SERVICE
+    restart: always
+    ports:
+      - "5264:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+    networks:
+      - app-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - './app/config/database/esdb:/app/database/esdb'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    ports:
+      - 9200:9200
+    networks:
+      - app-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.0.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - 5601:5601
+    networks:
+      - app-network
+      
+  app:
+    build: .
+    container_name: APP_BOT_SERVICE
+    ports:
+      - "5263:5000"
+    environment:
+      FLASK_ENV: development
+      FLASK_APP: run.py
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - db
+      - elasticsearch
+    networks:
+      - app-network
+
+  gomailer:
+    build: ./go_mailer
+    container_name: gomailer
+    ports:
+    - 3030:3030
+    restart: always
+
+    networks:
+      - app-network
+
+networks:
+  app-network:
+  
+volumes:
+  db_mvc:
